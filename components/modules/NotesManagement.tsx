@@ -9,6 +9,7 @@ import { FormCard, FormGrid, FormActions } from "@/components/ui/form-card";
 import { DataCard } from "@/components/ui/data-card";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ClampedContent } from "@/components/ui/clamped-content";
 import { FullPageLoading } from "@/components/ui/loading-spinner";
 import { StatCard } from "@/components/ui/stat-card";
 import { useArticles } from "@/hooks/useArticles";
@@ -2384,26 +2385,13 @@ export default function NotesManagement() {
                         "text-sm text-gray-600 dark:text-gray-300",
                         noteViewMode === "list" && "lg:flex lg:items-start lg:gap-6"
                       )}>
-                        <div className="flex-1">
-                        {isExpanded ? (
-                          <p className="whitespace-pre-wrap">{article.content}</p>
-                        ) : (
-                          <p className={cn("whitespace-pre-wrap", noteViewMode === "card" ? "line-clamp-5" : "line-clamp-3")}>{article.content}</p>
-                        )}
-                        </div>
+                        <ClampedContent
+                          content={article.content}
+                          expanded={isExpanded}
+                          onToggleExpanded={() => toggleExpanded(article.$id)}
+                          clampClassName={noteViewMode === "card" ? "line-clamp-5" : "line-clamp-3"}
+                        />
                       </div>
-
-                      {article.content.length > 100 && (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => toggleExpanded(article.$id)}
-                          className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
-                        >
-                          {isExpanded ? "收起" : "展開全文"}
-                        </Button>
-                      )}
 
                       {hasUrls && (
                         <div className="space-y-1 pt-2 border-t border-gray-200 dark:border-gray-700">
