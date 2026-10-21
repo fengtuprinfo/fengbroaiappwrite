@@ -24,6 +24,12 @@
 
 ## 目前重點更新
 
+### 2026-10-21
+
+- 核心原始碼重新統計為 416 檔、122,913 行（以 `config/codebase-stats.json` 為準）
+- 相較 2026-09-23 快照（393 檔、119,136 行）增加 23 檔、3,777 行
+- 口徑不變：只計 `app` / `components` / `hooks` / `lib` / `types` / `scripts` / `tests` 的 `.tsx` / `.ts` / `.js` / `.mjs` / `.css`
+
 ### 2026-09-04
 
 - 鋒兄比價手動價格、鋒兄Tube 頻道與鋒兄金融自選標的／精選改以 Appwrite Table 為主（`manualprice`／`tubechannel`／`financeinstrument2`），開啟雲端同步與多裝置共用

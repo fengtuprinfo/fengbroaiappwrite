@@ -1,6 +1,6 @@
 # 程式碼統計報告
 
-> 下文是 2026-03-03 的完整掃描快照。現況行數以 `config/codebase-stats.json` 為準（2026-09-04 核心原始碼 101,901 行／307 檔）；模組清單以 [docs/INDEX.md](docs/INDEX.md) 為準。
+> 下文是 2026-03-03 的完整掃描快照。現況行數以 `config/codebase-stats.json` 為準（2026-10-21 核心原始碼 122,913 行／416 檔）；模組清單以 [docs/INDEX.md](docs/INDEX.md) 為準。
 
 ## 專案概況
 - **專案名稱**: fengbroaiappwrite-main
@@ -117,3 +117,4 @@ types/                 # TypeScript 類型定義
 | 2026-03-03 (二) | **76,504** | 重新完整計算所有原始碼（含全部元件、API、Hooks、設定檔）|
 | 2026-09-03 | **96,191**（288 檔） | 核心原始碼重掃：試用／首購與重灌 CSV、關於頁進站人次／連續天數 |
 | 2026-09-04 | **101,901**（307 檔） | 比價／Tube／金融個人清單改存 Appwrite、Resend 設定 CSV 匯入匯出 |
+| 2026-10-21 | **122,913**（416 檔） | 核心原始碼重掃（app / components / hooks / lib / types / scripts / tests） |

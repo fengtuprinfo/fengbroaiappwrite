@@ -114,6 +114,15 @@ const DOC_GROUPS = [
 
 const RELEASE_ITEMS = [
   {
+    date: "2026-10-21",
+    title: "核心原始碼重新統計",
+    bullets: [
+      "以既有口徑重掃核心原始碼（app / components / hooks / lib / types / scripts / tests）：416 檔、122,913 行。",
+      "相較 2026-09-23 快照（393 檔、119,136 行）增加 23 檔、3,777 行。TSX 66,756 行、TypeScript 36,024 行、JavaScript 13,054 行、ES Module 6,174 行、CSS 905 行。",
+      "關於頁行數卡與系統架構分頁仍讀 config/codebase-stats.json，快照日期為 2026-10-21。",
+    ],
+  },
+  {
     date: "2026-09-04",
     title: "比價、Tube 與金融個人清單改存 Appwrite 雲端",
     bullets: [
