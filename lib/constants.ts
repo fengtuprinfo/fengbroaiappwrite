@@ -117,6 +117,8 @@ export const API_ENDPOINTS = {
   /** 全站共用的四位數密碼（在鋒兄設定建立） */
   ACCESS_PIN: "/api/access-pin",
   GOOGLE_DRIVE_SETTINGS: "/api/google-drive-settings",
+  /** 排程備份的頻率與最近一次結果（GET／PUT），POST 可立即跑一次 */
+  MENU_BACKUP_SCHEDULE: "/api/menu-backup-schedule",
   SHOPPING_LIST: "/api/shopping-list",
   UDEMY: "/api/udemy",
   BANK: "/api/bank",

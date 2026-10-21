@@ -31,11 +31,24 @@ export const NOTIFICATION_SETTINGS_SCHEMA = {
     // 讀寫都要通過全站共用的四位數密碼。
     { key: "googleClientId", type: "string", size: 300, required: false },
     { key: "googleApiKey", type: "string", size: 300, required: false },
+    // 排程備份的頻率與最近一次結果（documentId "menubackup"）。
+    // 這張表只有字串欄位，所以 enabled 存 "true"/"false"、intervalDays 存 "1"/"3"/…
+    { key: "enabled", type: "string", size: 10, required: false },
+    { key: "intervalDays", type: "string", size: 4, required: false },
+    { key: "lastAttemptAt", type: "string", size: 40, required: false },
+    { key: "lastResult", type: "string", size: 12, required: false },
+    { key: "lastMessage", type: "string", size: 2000, required: false },
+    { key: "lastFile", type: "string", size: 200, required: false },
+    { key: "lastSuccessAt", type: "string", size: 40, required: false },
+    { key: "lastSuccessDate", type: "string", size: 10, required: false },
   ],
 } as const;
 
 /** Google Drive 連接設定的固定 documentId。 */
 export const GOOGLE_DRIVE_SETTINGS_DOCUMENT_ID = "googledrive";
+
+/** 排程備份設定與狀態的固定 documentId。 */
+export const MENU_BACKUP_SCHEDULE_DOCUMENT_ID = "menubackup";
 
 export type NotificationSettingSlot = {
   apiKey: string;

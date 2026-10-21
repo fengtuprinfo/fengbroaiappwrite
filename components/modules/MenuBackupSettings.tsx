@@ -20,6 +20,7 @@ import {
   uploadBackupToGoogleDrive,
 } from "@/lib/googleDrive";
 import { GoogleDriveConnectionSettings } from "@/components/modules/GoogleDriveConnectionSettings";
+import { MenuBackupScheduleMonitor } from "@/components/modules/MenuBackupScheduleMonitor";
 
 type ProgressState = {
   stage: string;
@@ -205,6 +206,8 @@ export function MenuBackupSettings() {
         <p className="text-sm text-gray-600 dark:text-gray-400">
           CSV 備份只含文字資料（不含圖片／影片等檔案）。全部選單會再附上圖片、影片、音樂、播客、文件、筆記的 ZIP。匯入時相同鍵會更新、其餘新增，不會刪除備份裡沒有的紀錄。
         </p>
+
+        <MenuBackupScheduleMonitor />
 
         {progress && (
           <div className="rounded-lg border border-teal-200 bg-teal-50 p-4 dark:border-teal-800 dark:bg-teal-950">
