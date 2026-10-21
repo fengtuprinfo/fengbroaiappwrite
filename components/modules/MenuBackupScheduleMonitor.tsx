@@ -5,6 +5,7 @@ import { CalendarClock, CheckCircle2, Loader2, PlayCircle, XCircle } from "lucid
 import { Button } from "@/components/ui";
 import { fetchApi } from "@/hooks/useApi";
 import { API_ENDPOINTS } from "@/lib/constants";
+import { DRIVE_REAUTH_STEPS, isDriveAuthError } from "@/lib/googleDriveAuthHelp";
 import {
   BACKUP_INTERVAL_OPTIONS,
   BACKUP_SCHEDULE_TIME_LABEL,
@@ -140,12 +141,17 @@ export function MenuBackupScheduleMonitor() {
           `備份成功：${result.ok ?? 0} 個選單已上傳${result.failed ? `，${result.failed} 個失敗` : ""}。`
         );
       } else {
+        // 失敗原因已經寫進「上次執行」，這裡不再重複一整段。
         setFailed(true);
-        setMessage(`備份失敗：${result.error || "未知錯誤"}`);
+        setMessage("備份失敗，原因見上方「上次執行」。");
       }
-    } catch (error) {
+    } catch {
       setFailed(true);
-      setMessage(error instanceof Error ? error.message : "備份失敗");
+      // 原因已經寫進「上次執行」，這裡只留一句，避免同一段錯誤重複兩次。
+      setMessage("備份失敗，原因見上方「上次執行」。");
+      // 失敗時伺服器已經把結果寫進 Appwrite，但非 2xx 讓 fetchApi 直接丟錯、
+      // 拿不到回傳的 schedule，所以重新抓一次，「上次執行」才會跟著更新。
+      void load();
     } finally {
       setRunning(false);
     }
@@ -168,6 +174,7 @@ export function MenuBackupScheduleMonitor() {
     !neverRan &&
     idleDays != null &&
     idleDays > (state?.intervalDays ?? 1) + 1;
+  const needsReauth = isDriveAuthError(state?.lastMessage);
 
   return (
     <div className="rounded-xl border border-sky-200 bg-sky-50 p-4 dark:border-sky-800 dark:bg-sky-950/40">
@@ -280,6 +287,17 @@ export function MenuBackupScheduleMonitor() {
           </span>
         ) : null}
       </div>
+
+      {needsReauth ? (
+        <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-100">
+          <p className="font-semibold">需要重新授權 Google 雲端硬碟</p>
+          <ol className="mt-1 list-decimal space-y-1 pl-5">
+            {DRIVE_REAUTH_STEPS.map((step) => (
+              <li key={step}>{step}</li>
+            ))}
+          </ol>
+        </div>
+      ) : null}
     </div>
   );
 }

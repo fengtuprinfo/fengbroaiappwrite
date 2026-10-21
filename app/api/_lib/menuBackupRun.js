@@ -16,6 +16,7 @@ import { createAppwrite } from "./appwriteClient";
 import { loadResendConfig } from "./resendSettings";
 import { sendResendEmail } from "./resendEmail";
 import { validateResendConfigs } from "../../../lib/notifications/resolveResendConfig.mjs";
+import { DRIVE_REAUTH_STEPS, isDriveAuthError } from "../../../lib/googleDriveAuthHelp";
 
 function escapeHtml(value) {
   return String(value).replace(/[&<>"']/g, (char) => `&#${char.charCodeAt(0)};`);
@@ -47,6 +48,11 @@ export async function notifyBackupFailure(outcome) {
       outcome.error ? `原因：${outcome.error}` : "",
       ...failedMenus.map((result) => `- ${result.label}：${result.message || "匯出失敗"}`),
     ].filter(Boolean);
+
+    // 授權失效時把「怎麼修」直接寫進信裡，不然收信的人只知道壞了、不知道下一步。
+    if (isDriveAuthError(outcome.error)) {
+      lines.push("", "處理步驟：", ...DRIVE_REAUTH_STEPS.map((step, index) => `${index + 1}. ${step}`));
+    }
     const text = lines.join("\n");
     const html = `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.6;color:#172033">
       <h2 style="margin:0 0 12px">${escapeHtml(subject)}</h2>

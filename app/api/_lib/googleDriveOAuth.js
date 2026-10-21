@@ -10,6 +10,7 @@
 import { createAppwrite } from "./appwriteClient";
 import { ensureNotificationSettingsCollection, readSettingsDocument } from "./notificationSettingsTable";
 import { GOOGLE_DRIVE_SETTINGS_DOCUMENT_ID } from "../../../lib/notifications/notificationSettings";
+import { DRIVE_REAUTH_SHORT } from "../../../lib/googleDriveAuthHelp";
 
 export const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 export const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
@@ -47,15 +48,11 @@ export function driveCallbackUrl(origin) {
 /**
  * Google answers a dead refresh token with `invalid_grant` and, unhelpfully,
  * `error_description: "Bad Request"` — which used to be all the failure email
- * said. Name the real cause and the one setting that keeps it from recurring.
+ * said. The message itself stays short (it is shown inline in 鋒兄設定); the
+ * step-by-step fix lives in lib/googleDriveAuthHelp.ts so the monitor card and
+ * the notification email can render the same thing.
  */
-export const REFRESH_TOKEN_EXPIRED_MESSAGE =
-  "Google 授權已失效（invalid_grant）：GOOGLE_DRIVE_REFRESH_TOKEN 過期或被撤銷。" +
-  "最常見原因是 OAuth 同意畫面還停在「測試」狀態——Google 對測試中的應用只發 7 天有效的 refresh token，" +
-  "所以授權後第 8 天起每天都會備份失敗。" +
-  "請到 Google Cloud Console → API 和服務 → OAuth 同意畫面按「發布應用程式」，" +
-  "再開 /api/google-drive/authorize?secret=<CRON_SECRET> 重新授權，" +
-  "把新的 refresh token 更新到 Vercel 的 GOOGLE_DRIVE_REFRESH_TOKEN 並重新部署。";
+export const REFRESH_TOKEN_EXPIRED_MESSAGE = DRIVE_REAUTH_SHORT;
 
 const TOKEN_ERROR_MESSAGES = {
   invalid_client: "Google 不接受這組用戶端（invalid_client）：請確認 GOOGLE_CLIENT_SECRET 與 Client ID 屬於同一個 OAuth 用戶端，且密鑰沒有重新產生。",
