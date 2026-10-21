@@ -231,7 +231,11 @@ export function MenuBackupScheduleMonitor() {
               {resultStyle ? (
                 <span className={`ml-2 font-medium ${resultStyle.className}`}>{resultStyle.label}</span>
               ) : null}
-              {state.lastMessage ? <span className="ml-2 text-sky-700 dark:text-sky-300">— {state.lastMessage}</span> : null}
+              {state.lastMessage ? (
+                <span className="ml-2 text-sky-700 dark:text-sky-300" title={state.lastMessage}>
+                  — {state.lastMessage.length > 120 ? `${state.lastMessage.slice(0, 120)}…` : state.lastMessage}
+                </span>
+              ) : null}
             </dd>
           </div>
           <div className="flex gap-2">
