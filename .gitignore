@@ -117,6 +117,9 @@ dev.log
 .env*
 !.env.example
 
+# Taste Skill local inspect captures
+/.taste-skill/
+
 # vercel
 .vercel
 

@@ -115,6 +115,7 @@
 | [使用手冊](./USER_GUIDE.md) | 日常 CRUD 操作；選單與表數以本 INDEX 為準 |
 | [系統架構](./SYSTEM_ARCHITECTURE.md) | 分層說明；規模數字以 `config/codebase-stats.json` 為準 |
 | [產品定位](../PRODUCT.md) | 使用者、品牌與設計原則 |
+| [Taste Skill 首頁審視](./design/tasteskill-home-review-2026-10-21.md) | 2026-10-21 實機量測與三項優先修改 |
 
 ---
 
