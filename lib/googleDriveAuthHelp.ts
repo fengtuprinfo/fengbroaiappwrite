@@ -11,7 +11,7 @@ export const DRIVE_REAUTH_SHORT =
 
 /** 完整處理步驟，照順序做就會好。 */
 export const DRIVE_REAUTH_STEPS = [
-  "Google Cloud Console → API 和服務 → OAuth 同意畫面，按「發布應用程式」變成正式版。測試狀態下 Google 只發 7 天有效的 refresh token，這就是每天失敗的原因。",
+  "Google Cloud Console →「Google Auth Platform」→ 左側「目標對象」，最上面「發布狀態」若是「測試中」，按「發布應用程式」改成正式版。測試狀態下 Google 只發 7 天有效的 refresh token，這就是每天失敗的原因。",
   "開 /api/google-drive/authorize?secret=<CRON_SECRET> 重新授權，複製頁面上的 refresh token。",
   "Vercel → Settings → Environment Variables 更新 GOOGLE_DRIVE_REFRESH_TOKEN（Production），再重新部署。",
 ];
