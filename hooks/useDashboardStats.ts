@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { convertToTWD } from "@/lib/formatters";
+import { convertToTWD, getDaysFromToday } from "@/lib/formatters";
 import { fetchApi } from "@/hooks/useApi";
 import { useAppwriteSetup } from "@/hooks/useAppwriteSetup";
 import { useRefreshKeyListener } from "@/hooks/useRefreshKey";
@@ -230,31 +230,37 @@ async function loadTable<T>(
   }
 }
 
-function toFoodDetail(food: Food, today: Date, useFloor = false): FoodDetail {
-  const expireDate = new Date(food.todate);
-  const ms = expireDate.getTime() - today.getTime();
-  const daysRemaining = useFloor
-    ? Math.floor(ms / (1000 * 60 * 60 * 24))
-    : Math.ceil(ms / (1000 * 60 * 60 * 24));
+/**
+ * 到期天數一律用「本地日曆日」計算，與各模組頁（useFoods / useSubscriptions /
+ * useShoppingList）的 getDaysFromToday 同口徑。
+ *
+ * 不要再用 `now` 與原始時間戳相減後 Math.ceil：Appwrite 的 date-only 欄位會存成
+ * UTC 00:00，在 UTC+8 等於當天 08:00，於是首頁把「今天扣款」顯示成「1 天後」、
+ * 「明天」顯示成「2 天後」；超過 08:00 後當天的項目甚至會被誤判成已逾期。
+ *
+ * 回傳 null 代表沒填日期或日期無法解析。
+ */
+function daysUntil(raw?: string | null): number | null {
+  if (!raw) return null;
+  const days = getDaysFromToday(raw);
+  return Number.isFinite(days) ? days : null;
+}
+
+function toFoodDetail(food: Food): FoodDetail {
   return {
     id: food.$id,
     name: food.name,
-    daysRemaining,
+    daysRemaining: daysUntil(food.todate) ?? 0,
     expireDate: food.todate,
   };
 }
 
-function toSubDetail(sub: Subscription, today: Date, useFloor = false): SubscriptionDetail {
-  const nextDate = new Date(sub.nextdate);
-  const ms = nextDate.getTime() - today.getTime();
-  const daysRemaining = useFloor
-    ? Math.floor(ms / (1000 * 60 * 60 * 24))
-    : Math.ceil(ms / (1000 * 60 * 60 * 24));
+function toSubDetail(sub: Subscription): SubscriptionDetail {
   return {
     id: sub.$id,
     name: sub.name,
     site: sub.site,
-    daysRemaining,
+    daysRemaining: daysUntil(sub.nextdate) ?? 0,
     nextDate: sub.nextdate,
     price: sub.price,
   };
@@ -356,84 +362,70 @@ export function useDashboardStats(includeExtended = true) {
       const quotas = quotaResult.missingError ? [] : quotaResult.data;
       const shoppingItems = shoppingResult.missingError ? [] : shoppingResult.data;
 
-      const today = new Date();
-      const dayMs = 24 * 60 * 60 * 1000;
-      const sevenDaysFromNow = new Date(today.getTime() + 7 * dayMs);
-      const thirtyDaysFromNow = new Date(today.getTime() + 30 * dayMs);
-      const threeDaysFromNow = new Date(today.getTime() + 3 * dayMs);
+      // 提醒窗口以「日曆日」表示：0 = 今天，3 = 三天後，負數 = 已過期。
+      const EXPIRING_3_DAYS = 3;
+      const EXPIRING_7_DAYS = 7;
+      const EXPIRING_30_DAYS = 30;
 
       const foodsExpiring7DaysList = foods
         .filter((food) => {
-          if (!food.todate) return false;
-          const expireDate = new Date(food.todate);
-          if (Number.isNaN(expireDate.getTime())) return false;
-          return expireDate <= sevenDaysFromNow && expireDate >= today;
+          const days = daysUntil(food.todate);
+          return days !== null && days >= 0 && days <= EXPIRING_7_DAYS;
         })
-        .map((food) => toFoodDetail(food, today))
+        .map(toFoodDetail)
         .sort((a, b) => a.daysRemaining - b.daysRemaining);
 
       const foodsExpiring30DaysList = foods
         .filter((food) => {
-          if (!food.todate) return false;
-          const expireDate = new Date(food.todate);
-          if (Number.isNaN(expireDate.getTime())) return false;
-          return expireDate <= thirtyDaysFromNow && expireDate >= today;
+          const days = daysUntil(food.todate);
+          return days !== null && days >= 0 && days <= EXPIRING_30_DAYS;
         })
-        .map((food) => toFoodDetail(food, today))
+        .map(toFoodDetail)
         .sort((a, b) => a.daysRemaining - b.daysRemaining);
 
       const expiredFoodsList = foods
         .filter((food) => {
-          if (!food.todate) return false;
-          const expireDate = new Date(food.todate);
-          if (Number.isNaN(expireDate.getTime())) return false;
-          return expireDate < today;
+          const days = daysUntil(food.todate);
+          return days !== null && days < 0;
         })
-        .map((food) => toFoodDetail(food, today, true))
+        .map(toFoodDetail)
         .sort((a, b) => a.daysRemaining - b.daysRemaining);
 
       const subscriptionsExpiring3DaysList = subscriptions
         .filter((sub) => {
-          if (!sub.nextdate) return false;
-          const nextDate = new Date(sub.nextdate);
-          return nextDate <= threeDaysFromNow && nextDate >= today;
+          const days = daysUntil(sub.nextdate);
+          return days !== null && days >= 0 && days <= EXPIRING_3_DAYS;
         })
-        .map((sub) => toSubDetail(sub, today))
+        .map(toSubDetail)
         .sort((a, b) => a.daysRemaining - b.daysRemaining);
 
       const subscriptionsExpiring7DaysList = subscriptions
         .filter((sub) => {
-          if (!sub.nextdate) return false;
-          const nextDate = new Date(sub.nextdate);
-          return nextDate <= sevenDaysFromNow && nextDate >= today;
+          const days = daysUntil(sub.nextdate);
+          return days !== null && days >= 0 && days <= EXPIRING_7_DAYS;
         })
-        .map((sub) => toSubDetail(sub, today))
+        .map(toSubDetail)
         .sort((a, b) => a.daysRemaining - b.daysRemaining);
 
       const overdueSubscriptionsList = subscriptions
         .filter((sub) => {
-          if (!sub.nextdate) return false;
-          const nextDate = new Date(sub.nextdate);
-          return nextDate < today;
+          const days = daysUntil(sub.nextdate);
+          return days !== null && days < 0;
         })
-        .map((sub) => toSubDetail(sub, today, true))
+        .map(toSubDetail)
         .sort((a, b) => a.daysRemaining - b.daysRemaining);
 
       // 試用／首購：到期前 3 天內（含當天）進入提醒窗口
       const trialPurchasesExpiring3DaysList = trialPurchases
         .filter((doc) => {
-          if (!doc.eventDate) return false;
-          const eventDate = new Date(doc.eventDate);
-          if (Number.isNaN(eventDate.getTime())) return false;
-          return eventDate <= threeDaysFromNow && eventDate >= today;
+          const days = daysUntil(doc.eventDate);
+          return days !== null && days >= 0 && days <= EXPIRING_3_DAYS;
         })
         .map((doc) => {
-          const eventDate = new Date(doc.eventDate!);
-          const daysRemaining = Math.ceil((eventDate.getTime() - today.getTime()) / dayMs);
           return {
             id: doc.$id,
             name: doc.name,
-            daysRemaining,
+            daysRemaining: daysUntil(doc.eventDate) ?? 0,
             eventDate: doc.eventDate!,
             trialStatus: doc.trialStatus || "untried",
             purchaseStatus: doc.purchaseStatus || "not_purchased",
@@ -447,12 +439,11 @@ export function useDashboardStats(includeExtended = true) {
         const isAi = doc.serviceType === "ai";
         const pushDate = (kind: "quotaExpiry" | "expiryWeek" | "expiryMonth", raw?: string, label?: string) => {
           if (!raw) return;
-          const date = new Date(raw);
-          if (Number.isNaN(date.getTime())) return;
-          const daysRemaining = Math.ceil((date.getTime() - today.getTime()) / dayMs);
+          const daysRemaining = daysUntil(raw);
+          if (daysRemaining === null) return;
           // 規則：非 AI quotaExpiry 0~3 天；AI 一週／一月只提醒前一天＋當天（0~1 天）
           const inWindow = kind === "quotaExpiry"
-            ? !isAi && daysRemaining >= 0 && daysRemaining <= 3
+            ? !isAi && daysRemaining >= 0 && daysRemaining <= EXPIRING_3_DAYS
             : isAi && daysRemaining >= 0 && daysRemaining <= 1;
           if (!inWindow) return;
           quotaExpiryDetails.push({
@@ -474,7 +465,7 @@ export function useDashboardStats(includeExtended = true) {
       }
       quotaExpiryDetails.sort((a, b) => (a.daysRemaining ?? 0) - (b.daysRemaining ?? 0));
       const quotaAccountsExpiring3DaysList = quotaExpiryDetails.filter(
-        (detail) => detail.kind === "quotaExpiry" && (detail.daysRemaining ?? 0) >= 0 && (detail.daysRemaining ?? 0) <= 3,
+        (detail) => detail.kind === "quotaExpiry" && (detail.daysRemaining ?? 0) >= 0 && (detail.daysRemaining ?? 0) <= EXPIRING_3_DAYS,
       );
       const quotaAiExpiringSoonList = quotaExpiryDetails.filter(
         (detail) => detail.kind !== "quotaExpiry" && (detail.daysRemaining ?? 0) >= 0 && (detail.daysRemaining ?? 0) <= 1,
@@ -483,18 +474,14 @@ export function useDashboardStats(includeExtended = true) {
       // 購物清單：預定購買日前 3 天內（含當天）進入提醒窗口
       const shoppingItemsExpiring3DaysList = shoppingItems
         .filter((doc) => {
-          if (!doc.plannedDate) return false;
-          const planned = new Date(doc.plannedDate);
-          if (Number.isNaN(planned.getTime())) return false;
-          return planned <= threeDaysFromNow && planned >= today;
+          const days = daysUntil(doc.plannedDate);
+          return days !== null && days >= 0 && days <= EXPIRING_3_DAYS;
         })
         .map((doc) => {
-          const planned = new Date(doc.plannedDate!);
-          const daysRemaining = Math.ceil((planned.getTime() - today.getTime()) / dayMs);
           return {
             id: doc.$id,
             name: doc.name,
-            daysRemaining,
+            daysRemaining: daysUntil(doc.plannedDate) ?? 0,
             plannedDate: doc.plannedDate!,
             price: doc.price,
             currency: doc.currency,
@@ -505,18 +492,14 @@ export function useDashboardStats(includeExtended = true) {
       // 銀行／電子票證／點數：有效期限 7 天內（含當天）進入提醒窗口
       const banksExpiring7DaysList = banks
         .filter((doc) => {
-          if (!doc.expiry) return false;
-          const expiry = new Date(doc.expiry);
-          if (Number.isNaN(expiry.getTime())) return false;
-          return expiry <= sevenDaysFromNow && expiry >= today;
+          const days = daysUntil(doc.expiry);
+          return days !== null && days >= 0 && days <= EXPIRING_7_DAYS;
         })
         .map((doc) => {
-          const expiry = new Date(doc.expiry!);
-          const daysRemaining = Math.ceil((expiry.getTime() - today.getTime()) / dayMs);
           return {
             id: doc.$id,
             name: doc.name,
-            daysRemaining,
+            daysRemaining: daysUntil(doc.expiry) ?? 0,
             expiry: doc.expiry!,
             category: doc.category || "",
           } satisfies BankExpiryDetail;
