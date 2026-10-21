@@ -374,7 +374,14 @@ export async function uploadBackupWithToken(
   });
   if (!response.ok) {
     const errorBody = await response.json().catch(() => ({}) as { error?: { message?: string } });
-    throw new Error(errorBody?.error?.message || `上傳到 Google 雲端硬碟失敗（HTTP ${response.status}）`);
+    // Keep the status: Google returns a bare "Bad Request" for a 400, and
+    // "Bad Request" alone cannot be told apart from a token failure.
+    const detail = errorBody?.error?.message;
+    throw new Error(
+      detail
+        ? `上傳到 Google 雲端硬碟失敗（HTTP ${response.status}）：${detail}`
+        : `上傳到 Google 雲端硬碟失敗（HTTP ${response.status}）`
+    );
   }
   return response.json();
 }

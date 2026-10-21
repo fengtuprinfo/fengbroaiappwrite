@@ -44,6 +44,25 @@ export function driveCallbackUrl(origin) {
   return `${origin}/api/google-drive/callback`;
 }
 
+/**
+ * Google answers a dead refresh token with `invalid_grant` and, unhelpfully,
+ * `error_description: "Bad Request"` — which used to be all the failure email
+ * said. Name the real cause and the one setting that keeps it from recurring.
+ */
+export const REFRESH_TOKEN_EXPIRED_MESSAGE =
+  "Google 授權已失效（invalid_grant）：GOOGLE_DRIVE_REFRESH_TOKEN 過期或被撤銷。" +
+  "最常見原因是 OAuth 同意畫面還停在「測試」狀態——Google 對測試中的應用只發 7 天有效的 refresh token，" +
+  "所以授權後第 8 天起每天都會備份失敗。" +
+  "請到 Google Cloud Console → API 和服務 → OAuth 同意畫面按「發布應用程式」，" +
+  "再開 /api/google-drive/authorize?secret=<CRON_SECRET> 重新授權，" +
+  "把新的 refresh token 更新到 Vercel 的 GOOGLE_DRIVE_REFRESH_TOKEN 並重新部署。";
+
+const TOKEN_ERROR_MESSAGES = {
+  invalid_client: "Google 不接受這組用戶端（invalid_client）：請確認 GOOGLE_CLIENT_SECRET 與 Client ID 屬於同一個 OAuth 用戶端，且密鑰沒有重新產生。",
+  unauthorized_client: "這個 OAuth 用戶端不允許這種授權方式（unauthorized_client）。",
+  access_denied: "Google 授權被拒絕（access_denied）。",
+};
+
 async function tokenRequest(params) {
   const response = await fetch(GOOGLE_TOKEN_URL, {
     method: "POST",
@@ -52,7 +71,18 @@ async function tokenRequest(params) {
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(data?.error_description || data?.error || `Google token 請求失敗（HTTP ${response.status}）`);
+    const code = data?.error || "";
+    // "Bad Request" is Google's placeholder description, not a real diagnosis.
+    const description =
+      data?.error_description && data.error_description !== "Bad Request" ? data.error_description : "";
+    const error = new Error(
+      TOKEN_ERROR_MESSAGES[code] ||
+        description ||
+        `Google token 請求失敗（${code || `HTTP ${response.status}`}）`
+    );
+    error.code = code;
+    error.status = response.status;
+    throw error;
   }
   return data;
 }
@@ -75,6 +105,10 @@ export async function getDriveAccessToken() {
     client_secret: clientSecret,
     refresh_token: refreshToken,
     grant_type: "refresh_token",
+  }).catch((error) => {
+    // Only the refresh-token exchange can be expired; the code exchange has its own hint.
+    if (error?.code === "invalid_grant") throw new Error(REFRESH_TOKEN_EXPIRED_MESSAGE);
+    throw error;
   });
   return data.access_token;
 }
